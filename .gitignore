@@ -3,3 +3,6 @@ dist/
 .env
 postgres_data/
 *.js.map
+
+# LangGraph API
+.langgraph_api

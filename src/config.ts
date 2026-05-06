@@ -7,7 +7,9 @@ export type ModelConfig = {
   temperature: number;
 };
 
-console.assert(process.env.OPENROUTER_API_KEY, 'OPENROUTER_API_KEY is not set');
+if (!process.env.OPENROUTER_API_KEY) {
+  throw new Error('OPENROUTER_API_KEY is not set');
+}
 
 export const config: ModelConfig = {
   apiKey: process.env.OPENROUTER_API_KEY!,

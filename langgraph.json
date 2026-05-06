@@ -1,5 +1,5 @@
 {
-  "node_version": "24",
+  "node_version": "22",
   "graphs": {
     "workout_assistant": "./src/graph/factory.ts:graph"
   },
