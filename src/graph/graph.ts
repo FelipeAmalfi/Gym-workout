@@ -4,6 +4,7 @@ import type { BaseMessage } from '@langchain/core/messages';
 import { z } from 'zod/v3';
 
 import { createIdentifyIntentNode } from './nodes/identifyIntentNode.ts';
+import { createResolveUserNode } from './nodes/resolveUserNode.ts';
 import { createCreateWorkoutNode } from './nodes/createWorkoutNode.ts';
 import { createUpdateWorkoutNode } from './nodes/updateWorkoutNode.ts';
 import { createDeleteWorkoutNode } from './nodes/deleteWorkoutNode.ts';
@@ -55,6 +56,7 @@ export const WorkoutStateAnnotation = z.object({
         difficulty: z.enum(['Beginner', 'Intermediate', 'Expert']).optional(),
         numExercises: z.number().optional(),
         userId: z.number().optional(),
+        cpf: z.string().optional(),
         selectionRef: z.string().optional(),
     }).optional(),
 
@@ -83,6 +85,7 @@ export function buildWorkoutGraph(
 
     const workflow = new StateGraph({ stateSchema: WorkoutStateAnnotation })
         .addNode('identifyIntent', createIdentifyIntentNode(llmClient))
+        .addNode('resolveUser', createResolveUserNode(workoutService))
         .addNode('resolveWorkout', createResolveWorkoutNode(workoutService))
         .addNode('createWorkout', createCreateWorkoutNode(workoutService, ragService))
         .addNode('updateWorkout', createUpdateWorkoutNode(workoutService))
@@ -97,13 +100,25 @@ export function buildWorkoutGraph(
             'identifyIntent',
             (state: GraphState): string => {
                 if (state.error || !state.intent || state.intent === 'unknown') return 'message';
+                console.log(`➡️  Routing to: resolveUser`);
+                return 'resolveUser';
+            },
+            {
+                resolveUser: 'resolveUser',
+                message: 'message',
+            },
+        )
+
+        .addConditionalEdges(
+            'resolveUser',
+            (state: GraphState): string => {
                 if (state.missingSlots && state.missingSlots.length > 0) return 'message';
-                if (INTENTS_NEEDING_RESOLVE.has(state.intent)) {
+                if (INTENTS_NEEDING_RESOLVE.has(state.intent ?? '')) {
                     console.log(`➡️  Routing to: resolveWorkout (intent=${state.intent})`);
                     return 'resolveWorkout';
                 }
                 console.log(`➡️  Routing to: ${state.intent}`);
-                return state.intent;
+                return state.intent ?? 'message';
             },
             {
                 create_workout: 'createWorkout',

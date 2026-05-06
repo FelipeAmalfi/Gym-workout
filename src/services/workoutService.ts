@@ -22,17 +22,21 @@ export interface ExerciseRow {
     rating: number | null;
 }
 
+export interface WorkoutExerciseDetail {
+    id: number;
+    title: string;
+    description: string | null;
+    body_part: string | null;
+    equipment: string | null;
+    level: string | null;
+    sets: number | null;
+    reps: number | null;
+    rest_time_sec: number | null;
+    position: number;
+}
+
 export interface WorkoutWithExercises extends WorkoutRow {
-    exercises: Array<{
-        id: number;
-        title: string;
-        body_part: string | null;
-        equipment: string | null;
-        level: string | null;
-        sets: number | null;
-        reps: number | null;
-        position: number;
-    }>;
+    exercises: WorkoutExerciseDetail[];
 }
 
 export interface CreateWorkoutParams {
@@ -41,6 +45,7 @@ export interface CreateWorkoutParams {
     goal?: string;
     difficulty?: string;
     exerciseIds: number[];
+    restTimeSec?: number;
 }
 
 export interface UpdateWorkoutParams {
@@ -50,6 +55,11 @@ export interface UpdateWorkoutParams {
     description?: string;
 }
 
+export interface UserRow {
+    id: number;
+    cpf: string;
+}
+
 export class WorkoutService {
     private pool: pg.Pool;
 
@@ -57,8 +67,26 @@ export class WorkoutService {
         this.pool = pool;
     }
 
+    async getOrCreateUserByCpf(cpf: string): Promise<UserRow> {
+        const existing = await this.pool.query<UserRow>(
+            `SELECT id, cpf FROM users WHERE cpf = $1`,
+            [cpf],
+        );
+        if (existing.rows[0]) return existing.rows[0];
+
+        const created = await this.pool.query<UserRow>(
+            `INSERT INTO users (name, email, cpf)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (email) DO UPDATE SET cpf = EXCLUDED.cpf
+             RETURNING id, cpf`,
+            [`User ${cpf}`, `user-${cpf}@gymworkout.ai`, cpf],
+        );
+        return created.rows[0]!;
+    }
+
     async createWorkout(params: CreateWorkoutParams): Promise<WorkoutWithExercises> {
         const client = await this.pool.connect();
+        const restTime = params.restTimeSec ?? 60;
         try {
             await client.query('BEGIN');
 
@@ -72,9 +100,9 @@ export class WorkoutService {
 
             for (const [idx, exerciseId] of params.exerciseIds.entries()) {
                 await client.query(
-                    `INSERT INTO workout_exercises (workout_id, exercise_id, position, sets, reps)
-                     VALUES ($1, $2, $3, $4, $5)`,
-                    [workout.id, exerciseId, idx + 1, 3, 10],
+                    `INSERT INTO workout_exercises (workout_id, exercise_id, position, sets, reps, rest_time_sec)
+                     VALUES ($1, $2, $3, $4, $5, $6)`,
+                    [workout.id, exerciseId, idx + 1, 3, 10, restTime],
                 );
             }
 
@@ -125,9 +153,9 @@ export class WorkoutService {
         );
         if (!workoutRes.rows[0]) throw new Error(`Workout ${workoutId} not found`);
 
-        const exRes = await q.query(
-            `SELECT e.id, e.title, e.body_part, e.equipment, e.level,
-                    we.sets, we.reps, we.position
+        const exRes = await q.query<WorkoutExerciseDetail>(
+            `SELECT e.id, e.title, e.description, e.body_part, e.equipment, e.level,
+                    we.sets, we.reps, we.rest_time_sec, we.position
              FROM workout_exercises we
              JOIN exercises e ON e.id = we.exercise_id
              WHERE we.workout_id = $1

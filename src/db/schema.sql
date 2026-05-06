@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS cpf VARCHAR(11) UNIQUE;
+
 CREATE TABLE IF NOT EXISTS exercises (
   id          SERIAL PRIMARY KEY,
   title       VARCHAR(255) NOT NULL,
@@ -41,6 +43,8 @@ CREATE TABLE IF NOT EXISTS workout_exercises (
   notes        TEXT
 );
 
+ALTER TABLE workout_exercises ADD COLUMN IF NOT EXISTS rest_time_sec INTEGER DEFAULT 60;
+
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -54,5 +58,6 @@ CREATE TRIGGER workouts_updated_at
   BEFORE UPDATE ON workouts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-INSERT INTO users (name, email) VALUES ('Demo User', 'demo@gymworkout.ai')
-ON CONFLICT (email) DO NOTHING;
+INSERT INTO users (name, email, cpf)
+VALUES ('Demo User', 'demo@gymworkout.ai', '11144477735')
+ON CONFLICT (email) DO UPDATE SET cpf = EXCLUDED.cpf;
