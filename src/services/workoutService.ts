@@ -51,7 +51,11 @@ export interface UpdateWorkoutParams {
 }
 
 export class WorkoutService {
-    constructor(private pool: pg.Pool) {}
+    private pool: pg.Pool;
+
+    constructor(pool: pg.Pool) {
+        this.pool = pool;
+    }
 
     async createWorkout(params: CreateWorkoutParams): Promise<WorkoutWithExercises> {
         const client = await this.pool.connect();
