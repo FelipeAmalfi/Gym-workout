@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\felip\\\\OneDrive\\\\Documentos\\\\Pós graduação\\\\Gym-workout\\\\03-medical-appointment-z\" -Recurse -Force)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(awk -F',' '{print $4}')",
+      "Bash(awk -F',' '{print $5}')",
+      "Bash(awk -F',' '{print $6}')",
+      "Bash(awk -F',' '{print $7}')",
+      "Bash(python3)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

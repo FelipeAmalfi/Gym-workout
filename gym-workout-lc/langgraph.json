@@ -1,0 +1,7 @@
+{
+  "node_version": "24",
+  "graphs": {
+    "workout_assistant": "./src/graph/factory.ts:graph"
+  },
+  "env": ".env"
+}
