@@ -1,2 +1,5 @@
-/03-medical-appointment-z
-/exemplo-13-embeddings-neo4j-rag
+node_modules/
+dist/
+.env
+postgres_data/
+*.js.map
