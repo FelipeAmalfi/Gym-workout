@@ -10,6 +10,9 @@ function resolveScenario(state: GraphState): string {
     if (!state.intent || state.intent === 'unknown' || state.error) {
         return 'unknown';
     }
+    if (state.actionError === 'no_match') {
+        return 'no_workout_match';
+    }
     const outcome = state.actionSuccess ? 'success' : 'error';
     return `${state.intent}_${outcome}`;
 }
@@ -27,6 +30,7 @@ export function createMessageGeneratorNode(llmClient: OpenRouterService) {
                 actionData: state.actionData,
                 actionError: state.actionError,
                 retrievedExercises: state.retrievedExercises?.slice(0, 8),
+                workoutCandidates: state.workoutCandidates,
                 error: state.error,
             };
 

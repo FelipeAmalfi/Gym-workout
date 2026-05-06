@@ -10,7 +10,7 @@ export function createListWorkoutsNode(workoutService: WorkoutService) {
             const workouts = await workoutService.listWorkouts(userId);
             console.log(`✅ Found ${workouts.length} workouts for user ${userId}`);
 
-            return { actionSuccess: true, actionData: workouts };
+            return { actionSuccess: true, actionData: workouts, workoutCandidates: undefined };
         } catch (error) {
             console.error('❌ Error in listWorkoutsNode:', error);
             return {

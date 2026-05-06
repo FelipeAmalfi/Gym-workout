@@ -4,13 +4,17 @@ import type { GraphState } from '../graph.ts';
 
 const REQUIRED_SLOTS_BY_INTENT: Record<string, string[]> = {
     create_workout: ['muscleGroups_or_goal'],
-    update_workout: ['workoutId'],
-    delete_workout: ['workoutId'],
-    get_workout: ['workoutId'],
+    update_workout: ['workout_reference'],
+    delete_workout: ['workout_reference'],
+    get_workout: ['workout_reference'],
     list_workouts: [],
 };
 
-function computeMissingSlots(intent: string, slots: GraphState['slots']): string[] {
+function computeMissingSlots(
+    intent: string,
+    slots: GraphState['slots'],
+    workoutCandidates: GraphState['workoutCandidates'],
+): string[] {
     const required = REQUIRED_SLOTS_BY_INTENT[intent] ?? [];
     const missing: string[] = [];
 
@@ -19,9 +23,15 @@ function computeMissingSlots(intent: string, slots: GraphState['slots']): string
             if (!slots?.muscleGroups?.length && !slots?.goal) {
                 missing.push('muscleGroups_or_goal');
             }
-        } else if (slot === 'workoutId') {
-            if (!slots?.workoutId) {
-                missing.push('workoutId');
+        } else if (slot === 'workout_reference') {
+            const hasCandidates = (workoutCandidates?.length ?? 0) > 0;
+            const hasReference =
+                slots?.workoutId != null ||
+                (slots?.muscleGroups?.length ?? 0) > 0 ||
+                (slots?.selectionRef != null && slots.selectionRef !== '') ||
+                hasCandidates;
+            if (!hasReference) {
+                missing.push('workout_reference');
             }
         }
     }
@@ -58,7 +68,7 @@ export function createIdentifyIntentNode(llmClient: OpenRouterService) {
 
             const mergedSlots = { ...state.slots, ...newSlots };
             const missingSlots = intent !== 'unknown'
-                ? computeMissingSlots(intent, mergedSlots)
+                ? computeMissingSlots(intent, mergedSlots, state.workoutCandidates)
                 : [];
 
             if (missingSlots.length > 0) {

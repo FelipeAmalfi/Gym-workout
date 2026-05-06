@@ -62,6 +62,7 @@ export function createCreateWorkoutNode(workoutService: WorkoutService, ragServi
                 retrievedExercises: exercises,
                 actionSuccess: true,
                 actionData: workout,
+                workoutCandidates: undefined,
             };
         } catch (error) {
             console.error('❌ Error in createWorkoutNode:', error);

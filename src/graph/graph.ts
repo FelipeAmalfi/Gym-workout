@@ -9,6 +9,7 @@ import { createUpdateWorkoutNode } from './nodes/updateWorkoutNode.ts';
 import { createDeleteWorkoutNode } from './nodes/deleteWorkoutNode.ts';
 import { createGetWorkoutNode } from './nodes/getWorkoutNode.ts';
 import { createListWorkoutsNode } from './nodes/listWorkoutsNode.ts';
+import { createResolveWorkoutNode } from './nodes/resolveWorkoutNode.ts';
 import { createMessageGeneratorNode } from './nodes/messageGeneratorNode.ts';
 
 import type { OpenRouterService } from '../services/openRouterService.ts';
@@ -23,6 +24,14 @@ const RetrievedExerciseSchema = z.object({
     equipment: z.string(),
     level: z.string(),
     score: z.number(),
+});
+
+const WorkoutCandidateSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    goal: z.string().nullable().optional(),
+    difficulty: z.string().nullable().optional(),
+    muscleGroups: z.array(z.string()),
 });
 
 export const WorkoutStateAnnotation = z.object({
@@ -46,11 +55,14 @@ export const WorkoutStateAnnotation = z.object({
         difficulty: z.enum(['Beginner', 'Intermediate', 'Expert']).optional(),
         numExercises: z.number().optional(),
         userId: z.number().optional(),
+        selectionRef: z.string().optional(),
     }).optional(),
 
     missingSlots: z.array(z.string()).optional(),
 
     retrievedExercises: z.array(RetrievedExerciseSchema).optional(),
+
+    workoutCandidates: z.array(WorkoutCandidateSchema).optional(),
 
     actionSuccess: z.boolean().optional(),
     actionError: z.string().optional(),
@@ -67,8 +79,11 @@ export function buildWorkoutGraph(
     ragService: RagService,
     checkpointer: MemorySaver,
 ) {
+    const INTENTS_NEEDING_RESOLVE = new Set(['update_workout', 'delete_workout', 'get_workout']);
+
     const workflow = new StateGraph({ stateSchema: WorkoutStateAnnotation })
         .addNode('identifyIntent', createIdentifyIntentNode(llmClient))
+        .addNode('resolveWorkout', createResolveWorkoutNode(workoutService))
         .addNode('createWorkout', createCreateWorkoutNode(workoutService, ragService))
         .addNode('updateWorkout', createUpdateWorkoutNode(workoutService))
         .addNode('deleteWorkout', createDeleteWorkoutNode(workoutService))
@@ -83,15 +98,35 @@ export function buildWorkoutGraph(
             (state: GraphState): string => {
                 if (state.error || !state.intent || state.intent === 'unknown') return 'message';
                 if (state.missingSlots && state.missingSlots.length > 0) return 'message';
+                if (INTENTS_NEEDING_RESOLVE.has(state.intent)) {
+                    console.log(`➡️  Routing to: resolveWorkout (intent=${state.intent})`);
+                    return 'resolveWorkout';
+                }
                 console.log(`➡️  Routing to: ${state.intent}`);
                 return state.intent;
             },
             {
                 create_workout: 'createWorkout',
-                update_workout: 'updateWorkout',
-                delete_workout: 'deleteWorkout',
-                get_workout: 'getWorkout',
+                resolveWorkout: 'resolveWorkout',
                 list_workouts: 'listWorkouts',
+                message: 'message',
+            },
+        )
+
+        .addConditionalEdges(
+            'resolveWorkout',
+            (state: GraphState): string => {
+                if (state.missingSlots && state.missingSlots.length > 0) return 'message';
+                if (state.actionError || state.actionSuccess) return 'message';
+                if (state.intent === 'update_workout') return 'updateWorkout';
+                if (state.intent === 'delete_workout') return 'deleteWorkout';
+                if (state.intent === 'get_workout') return 'getWorkout';
+                return 'message';
+            },
+            {
+                updateWorkout: 'updateWorkout',
+                deleteWorkout: 'deleteWorkout',
+                getWorkout: 'getWorkout',
                 message: 'message',
             },
         )

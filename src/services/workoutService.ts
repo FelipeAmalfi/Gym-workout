@@ -141,4 +141,26 @@ export class WorkoutService {
         );
         return res.rows;
     }
+
+    async findWorkoutsByMuscleGroups(
+        userId: number,
+        muscleGroups: string[],
+    ): Promise<Array<WorkoutRow & { muscleGroups: string[] }>> {
+        const res = await this.pool.query<WorkoutRow & { muscle_groups: string[] }>(
+            `SELECT w.*,
+                    array_agg(DISTINCT e.body_part) FILTER (WHERE e.body_part IS NOT NULL) AS muscle_groups
+             FROM workouts w
+             JOIN workout_exercises we ON we.workout_id = w.id
+             JOIN exercises e ON e.id = we.exercise_id
+             WHERE w.user_id = $1
+               AND e.body_part = ANY($2::text[])
+             GROUP BY w.id
+             ORDER BY w.created_at DESC`,
+            [userId, muscleGroups],
+        );
+        return res.rows.map(({ muscle_groups, ...rest }) => ({
+            ...rest,
+            muscleGroups: muscle_groups ?? [],
+        }));
+    }
 }

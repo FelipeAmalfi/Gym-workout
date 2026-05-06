@@ -9,6 +9,7 @@ export const SlotsSchema = z.object({
     difficulty: z.enum(['Beginner', 'Intermediate', 'Expert']).optional().describe('Workout difficulty level'),
     numExercises: z.number().optional().describe('Number of exercises to include in the workout'),
     userId: z.number().optional().describe('User ID if explicitly mentioned in the message'),
+    selectionRef: z.string().optional().describe('Reference to a previously listed workout: an ordinal ("first"/"second"), a position number ("1"), or a workout name'),
 });
 
 export const IntentSchema = z.object({
@@ -40,18 +41,18 @@ export const getSystemPrompt = () => JSON.stringify({
         update_workout: {
             description: 'User wants to modify or change an existing workout',
             keywords: ['update', 'change', 'modify', 'edit', 'rename'],
-            required_slots: ['workoutId'],
+            required_slots: ['workoutId OR muscleGroups OR selectionRef'],
             optional_slots: ['workoutName', 'difficulty', 'goal'],
         },
         delete_workout: {
             description: 'User wants to delete or remove an existing workout',
             keywords: ['delete', 'remove', 'erase', 'get rid of'],
-            required_slots: ['workoutId'],
+            required_slots: ['workoutId OR muscleGroups OR selectionRef'],
         },
         get_workout: {
             description: 'User wants to view or see details of one specific workout',
             keywords: ['show', 'get', 'view', 'see', 'details', 'display'],
-            required_slots: ['workoutId'],
+            required_slots: ['workoutId OR muscleGroups OR selectionRef'],
         },
         list_workouts: {
             description: 'User wants to list, browse, or see all their workouts',
@@ -79,6 +80,8 @@ export const getSystemPrompt = () => JSON.stringify({
         difficulty: 'Match level mentions: "easy/beginner" → "Beginner", "medium/moderate" → "Intermediate", "hard/advanced/expert" → "Expert"',
         workoutId: 'Extract numeric IDs explicitly mentioned as "workout #3", "workout ID 5", "the one with ID 2"',
         userId: 'Extract numeric user IDs only if explicitly stated. Do not infer.',
+        selectionRef: 'When the user is choosing from a previously presented list (e.g. "the first one", "the second", "1", "Push Day"), extract the reference verbatim. Do NOT extract this if the user mentions a fresh muscle group instead.',
+        intent_continuity: 'When the user replies with only a selection ("the second one", "Push Day", "1") and the previous assistant turn presented a list of workouts, preserve the prior intent (update_workout / delete_workout / get_workout). Do NOT classify pure selections as create_workout or list_workouts.',
     },
     examples: [
         {
@@ -98,6 +101,19 @@ export const getSystemPrompt = () => JSON.stringify({
         {
             input: 'Delete workout 3',
             output: { intent: 'delete_workout', slots: { workoutId: 3 } },
+        },
+        {
+            input: 'Delete my chest workout',
+            output: { intent: 'delete_workout', slots: { muscleGroups: ['Chest'] } },
+        },
+        {
+            input: 'Show me my shoulder workout',
+            output: { intent: 'get_workout', slots: { muscleGroups: ['Shoulders'] } },
+        },
+        {
+            input: 'the second one',
+            note: 'Follow-up after the assistant presented a list. Preserve the prior intent.',
+            output: { intent: 'delete_workout', slots: { selectionRef: 'second' } },
         },
         {
             input: 'Show me all my workouts',
