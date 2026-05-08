@@ -20,7 +20,7 @@ const EnvSchema = z.object({
     ),
     HOST: z.string().default('0.0.0.0'),
 
-    LLM_MODEL: z.string().default('openai/gpt-4o-mini'),
+    LLM_MODEL: z.string().default('openrouter/owl-alpha'),
     LLM_TEMPERATURE: z.preprocess(
         (v) => (v === undefined || v === '' ? undefined : Number(v)),
         z.number().min(0).max(2).default(0),
