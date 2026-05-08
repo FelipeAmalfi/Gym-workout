@@ -1,0 +1,10 @@
+node_modules
+.env
+postgres_data
+.langgraph_api
+dist
+.claude
+tests
+scripts
+.git
+*.log
