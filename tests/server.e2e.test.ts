@@ -1,8 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from '../src/server.ts';
+import { buildContainer } from '../src/composition/container.ts';
+import { createServer } from '../src/interface/http/server.ts';
 
-const app = createServer();
+const container = buildContainer();
+const app = createServer(container);
 
 async function chat(message: string, threadId: string, userId = 1) {
     return app.inject({
@@ -13,7 +15,6 @@ async function chat(message: string, threadId: string, userId = 1) {
 }
 
 describe('Gym Workout API — E2E Tests', async () => {
-
     it('POST /chat — identifies unknown intent gracefully', async () => {
         const res = await chat('What is the weather today?', 'test-unknown-1');
         assert.equal(res.statusCode, 200);
@@ -58,28 +59,19 @@ describe('Gym Workout API — E2E Tests', async () => {
     });
 
     it('GET /workouts — returns workouts for user', async () => {
-        const res = await app.inject({
-            method: 'GET',
-            url: '/workouts?user_id=1',
-        });
+        const res = await app.inject({ method: 'GET', url: '/workouts?user_id=1' });
         assert.equal(res.statusCode, 200);
         const body = JSON.parse(res.body);
         assert.ok(Array.isArray(body), 'should return an array');
     });
 
     it('GET /workouts — returns 400 without user_id', async () => {
-        const res = await app.inject({
-            method: 'GET',
-            url: '/workouts',
-        });
+        const res = await app.inject({ method: 'GET', url: '/workouts' });
         assert.equal(res.statusCode, 400);
     });
 
     it('DELETE /workouts/:id — returns 400 without user_id', async () => {
-        const res = await app.inject({
-            method: 'DELETE',
-            url: '/workouts/99999',
-        });
+        const res = await app.inject({ method: 'DELETE', url: '/workouts/99999' });
         assert.equal(res.statusCode, 400);
     });
 });

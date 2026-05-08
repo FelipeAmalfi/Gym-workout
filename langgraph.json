@@ -1,7 +1,7 @@
 {
   "node_version": "22",
   "graphs": {
-    "workout_assistant": "./src/graph/factory.ts:graph"
+    "workout_assistant": "./src/interface/graph/studio.ts:graph"
   },
   "env": ".env"
 }
