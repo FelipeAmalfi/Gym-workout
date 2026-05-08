@@ -1,6 +1,8 @@
-import { createServer } from './server.ts';
+import { buildContainer } from './composition/container.ts';
+import { createServer } from './interface/http/server.ts';
 
-const app = createServer();
+const container = buildContainer();
+const app = createServer(container);
 
-await app.listen({ port: 3000, host: '0.0.0.0' });
-console.log('🏋️  Gym Workout Server running on http://0.0.0.0:3000');
+await app.listen({ port: container.env.PORT, host: container.env.HOST });
+console.log(`🏋️  Gym Workout Server running on http://${container.env.HOST}:${container.env.PORT}`);

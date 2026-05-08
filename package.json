@@ -8,8 +8,8 @@
     "start": "node --env-file .env src/index.ts",
     "dev": "node --watch --inspect --env-file .env src/index.ts",
     "ingest": "node --env-file .env scripts/ingest.ts",
-    "infra:up": "docker-compose up -d --wait",
-    "infra:down": "docker-compose down --volumes",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down --volumes",
     "test": "node --env-file .env --test tests/**/*.test.ts",
     "test:e2e": "node --inspect --env-file .env --test tests/**/*e2e.test.ts",
     "langgraph:serve": "npx @langchain/langgraph-cli dev"
@@ -25,7 +25,8 @@
     "langchain": "^1.2.17",
     "fastify": "^5.7.4",
     "pg": "^8.13.3",
-    "csv-parse": "^5.5.6"
+    "csv-parse": "^5.5.6",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.12",

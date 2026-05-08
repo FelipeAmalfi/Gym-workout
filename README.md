@@ -6,9 +6,12 @@ AI-powered workout system using LangChain, RAG, PostgreSQL (pgvector), and LangG
 
 - **Conversational AI** — chat to create, view, update, and delete workouts
 - **Multi-turn slot filling** — if you leave out details, the assistant asks follow-up questions and remembers your answers across turns
+- **CPF-based identity** — users are identified conversationally by Brazilian CPF; new users are created on first contact
+- **Reference resolution** — pick a workout by id, by ordinal ("the second one"), by name, or by muscle group
 - **RAG pipeline** — retrieves exercises from a 2,918-exercise dataset using semantic similarity (pgvector)
 - **REST API** — direct CRUD endpoints for workouts alongside the chat interface
 - **LangGraph state machine** — deterministic routing between 5 intents with observable state
+- **LangGraph Studio support** — visualize and debug the graph via `npm run langgraph:serve`
 
 ## Architecture
 
@@ -18,21 +21,27 @@ POST /chat
     ▼
 identifyIntent (LLM)
     │
-    ├─ missing slots? ──────────────────────────────┐
-    │                                               │
-    ├─ create_workout ─► RAG search ─► DB insert   │
-    ├─ update_workout ─► DB update                  │
-    ├─ delete_workout ─► DB delete                  │
-    ├─ get_workout    ─► DB select                  │
-    └─ list_workouts  ─► DB select all              │
-                │                                   │
-                └──────────► messageGenerator (LLM) ◄┘
-                                      │
-                                      ▼
-                                  JSON response
+    ▼
+resolveUser ── needs CPF? ────────────────────┐
+    │                                          │
+    ├─ create_workout  ─► RAG search ─► insert │
+    ├─ list_workouts   ─► DB select            │
+    │                                          │
+    └─ resolveWorkout (update/delete/get)      │
+            │                                  │
+            ├─ multiple matches → ask to pick ─┤
+            │                                  │
+            ├─ update_workout ─► DB update     │
+            ├─ delete_workout ─► DB delete     │
+            └─ get_workout    ─► DB select     │
+                    │                          │
+                    └────► messageGenerator ◄──┘
+                                │
+                                ▼
+                            JSON response
 ```
 
-State is persisted per `thread_id` via LangGraph `MemorySaver`, enabling multi-turn conversations.
+State is persisted per `thread_id` via LangGraph `MemorySaver`, enabling multi-turn conversations and follow-up references like "the second one".
 
 ## Tech Stack
 
@@ -45,16 +54,20 @@ State is persisted per `thread_id` via LangGraph `MemorySaver`, enabling multi-t
 | Vector store | pgvector (PostgreSQL extension) |
 | Database | PostgreSQL 16 |
 | HTTP server | Fastify v5 |
+| Schema validation | Zod v3 (structured outputs + per-node slot guards) |
 | Dataset | megaGymDataset.csv (2,918 exercises) |
 
 ## Project Structure
 
 ```
-gym-workout-lc/
+.
 ├── megaGymDataset.csv         # Source dataset
 ├── docker-compose.yml         # PostgreSQL + pgvector
+├── langgraph.json             # LangGraph Studio config
 ├── scripts/
 │   └── ingest.ts              # CSV → DB + pgvector (run once)
+├── tests/
+│   └── server.e2e.test.ts     # End-to-end chat + REST tests
 └── src/
     ├── index.ts               # Entry point
     ├── server.ts              # Fastify routes
@@ -63,17 +76,20 @@ gym-workout-lc/
     │   ├── client.ts          # pg Pool singleton
     │   └── schema.sql         # DDL (auto-applied on first docker run)
     ├── services/
-    │   ├── openRouterService.ts  # LLM client (structured outputs)
-    │   ├── workoutService.ts     # Workout CRUD
-    │   └── ragService.ts         # pgvector similarity search
+    │   ├── openRouterService.ts   # LLM client (structured outputs)
+    │   ├── workoutService.ts      # Workout CRUD + user lookup by CPF
+    │   ├── workoutFormatter.ts    # Deterministic chat formatters
+    │   └── ragService.ts          # pgvector similarity search
     ├── prompts/v1/
-    │   ├── identifyIntent.ts     # Intent + slot extraction prompt
-    │   └── messageGenerator.ts   # Response generation prompt
+    │   ├── identifyIntent.ts      # Intent + slot extraction prompt
+    │   └── messageGenerator.ts    # Response generation prompt
     └── graph/
         ├── graph.ts           # State schema + graph definition
         ├── factory.ts         # Wires services + MemorySaver
         └── nodes/
             ├── identifyIntentNode.ts
+            ├── resolveUserNode.ts        # CPF → userId
+            ├── resolveWorkoutNode.ts     # ordinal/name/muscle → workoutId
             ├── createWorkoutNode.ts
             ├── updateWorkoutNode.ts
             ├── deleteWorkoutNode.ts
@@ -107,7 +123,7 @@ POSTGRES_PASSWORD=gympassword
 npm run infra:up
 ```
 
-This starts PostgreSQL 16 with pgvector. The schema (`users`, `exercises`, `workouts`, `workout_exercises`) is applied automatically on first run.
+Starts PostgreSQL 16 with pgvector. The schema (`users` with CPF column, `exercises`, `workouts`, `workout_exercises`) is applied automatically on first run, along with a demo user (`cpf = 11144477735`).
 
 ### 3. Install dependencies
 
@@ -126,11 +142,19 @@ Reads `megaGymDataset.csv`, inserts 2,918 exercises into PostgreSQL, and embeds 
 ### 5. Start the server
 
 ```bash
-npm run dev   # with file watch
+npm run dev   # with file watch + inspector
 npm start     # production
 ```
 
 Server runs on `http://localhost:3000`.
+
+### 6. (Optional) Open LangGraph Studio
+
+```bash
+npm run langgraph:serve
+```
+
+Boots the LangGraph CLI dev UI to visualize the graph, step through nodes, and replay threads.
 
 ## API Reference
 
@@ -147,11 +171,14 @@ Conversational endpoint. Supports multi-turn conversations via `thread_id`.
 }
 ```
 
+If `user_id` is omitted, the assistant will ask for the user's CPF and look them up (or create them) on the fly.
+
 **Response:**
 ```json
 {
-  "reply": "💪 Your \"Beginner Chest Workout\" is ready!\n\n1. Dumbbell Bench Press — 3 sets × 10 reps\n...",
+  "reply": "Workout: Beginner Chest Workout\nDifficulty: Beginner\n\nExercise 1\nName: Dumbbell Bench Press\n...",
   "intent": "create_workout",
+  "missingSlots": [],
   "actionSuccess": true,
   "actionData": { "id": 3, "name": "Beginner Chest Workout", "exercises": [...] }
 }
@@ -218,13 +245,50 @@ curl -X POST localhost:3000/chat \
 curl -X POST localhost:3000/chat \
   -H 'Content-Type: application/json' \
   -d '{"message": "Legs, expert level", "thread_id": "session-2", "user_id": 1}'
-# → "💪 Your Expert Legs Workout is ready! ..."
+# → "Workout: Expert Quadriceps & Hamstrings & Glutes Workout ..."
 ```
 
-### List and manage workouts
+### CPF-based identity (no `user_id`)
 
 ```bash
-# List
+# Turn 1 — assistant doesn't know who you are
+curl -X POST localhost:3000/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "Create a chest workout", "thread_id": "session-cpf"}'
+# → "Could you share your CPF so I can save your workout?"
+
+# Turn 2 — provide CPF
+curl -X POST localhost:3000/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "111.444.777-35", "thread_id": "session-cpf"}'
+# → Resolves user, then creates the workout (intent + slots survived from turn 1)
+```
+
+### List → select by ordinal or name
+
+```bash
+# Turn 1
+curl -X POST localhost:3000/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "Show me my chest workouts", "thread_id": "session-pick", "user_id": 1}'
+# → numbered list with prompt: "Which one would you like to open?"
+
+# Turn 2 — pick by ordinal
+curl -X POST localhost:3000/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "the second one", "thread_id": "session-pick", "user_id": 1}'
+# → opens workout #2 from the list (intent auto-upgrades to get_workout)
+
+# Or by name
+curl -X POST localhost:3000/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "Push Day", "thread_id": "session-pick", "user_id": 1}'
+```
+
+### Manage workouts
+
+```bash
+# List via REST
 curl 'localhost:3000/workouts?user_id=1'
 
 # View details via chat
@@ -241,10 +305,10 @@ curl -X POST localhost:3000/chat \
 ## Database Schema
 
 ```sql
-users            — id, name, email
-exercises        — id, title, description, type, body_part, equipment, level, rating
-workouts         — id, user_id, name, goal, difficulty, created_at, updated_at
-workout_exercises — workout_id, exercise_id, position, sets, reps
+users              — id, name, email, cpf (11 digits, unique), created_at
+exercises          — id, title, description, type, body_part, equipment, level, rating
+workouts           — id, user_id, name, description, goal, difficulty, created_at, updated_at
+workout_exercises  — workout_id, exercise_id, position, sets, reps, rest_time_sec, notes
 langchain_pg_embedding — pgvector table (auto-created by LangChain)
 ```
 
@@ -262,7 +326,8 @@ langchain_pg_embedding — pgvector table (auto-created by LangChain)
 ## Running Tests
 
 ```bash
-npm test
+npm test          # all tests
+npm run test:e2e  # end-to-end only (with inspector)
 ```
 
 Tests require a running PostgreSQL instance and a valid `OPENROUTER_API_KEY` in `.env`.
