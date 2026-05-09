@@ -20,6 +20,7 @@ export const getSystemPrompt = () => JSON.stringify({
     scenarios: {
         ask_for_cpf: 'Politely ask the user for their CPF so we can identify them. Mention they can include or omit dots and dashes (11 digits). Keep it short and friendly.',
         ask_for_cpf_invalid: 'Tell the user the CPF they provided is invalid (failed verification) and ask them to retype it. Stay polite and brief.',
+        ask_for_name: 'Politely ask the user for their full name so we can register them. Keep it short and friendly.',
         ask_for_muscleGroups_or_goal: 'Ask which muscle groups to target or what their fitness goal is. Provide examples: chest, back, legs, full body, fat loss, strength.',
         ask_for_difficulty: 'Ask the difficulty level: Beginner, Intermediate, or Expert.',
         ask_for_workout_reference: 'Ask which workout the user means. Suggest they say the muscle group (e.g. "my chest workout") or the workout name. Do not ask for a numeric ID.',

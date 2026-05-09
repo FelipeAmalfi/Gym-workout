@@ -46,6 +46,7 @@ export const WorkoutStateAnnotation = z.object({
             numExercises: z.number().optional(),
             userId: z.number().optional(),
             cpf: z.string().optional(),
+            userName: z.string().optional(),
             selectionRef: z.string().optional(),
         })
         .optional(),

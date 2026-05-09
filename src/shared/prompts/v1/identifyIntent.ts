@@ -10,6 +10,7 @@ export const SlotsSchema = z.object({
     numExercises: z.number().optional().describe('Number of exercises to include in the workout'),
     userId: z.number().optional().describe('User ID if explicitly mentioned in the message'),
     cpf: z.string().optional().describe('Brazilian CPF when user provides one. Always return only the 11 digits, no dots or dashes.'),
+    userName: z.string().optional().describe('Full name of the user when they provide it'),
     selectionRef: z.string().optional().describe('Reference to a previously listed workout: an ordinal ("first"/"second"), a position number ("1"), or a workout name'),
 });
 
@@ -83,6 +84,8 @@ export const getSystemPrompt = () => JSON.stringify({
         workoutId: 'Extract numeric IDs explicitly mentioned as "workout #3", "workout ID 5", "the one with ID 2"',
         userId: 'Extract numeric user IDs only if explicitly stated. Do not infer.',
         cpf: 'Extract Brazilian CPF when the user provides one. Strip any dots, dashes, and spaces; return only the 11 digits in slots.cpf. Accept formats like "123.456.789-09", "12345678909", or "meu cpf é 123 456 789 09".',
+        userName: 'Extract the user\'s full name when they provide it, e.g. "my name is João Silva" → "João Silva", "me chamo Ana" → "Ana".',
+        name_continuity: 'When context.prior_intent is set and the user reply contains only their name, preserve context.prior_intent and extract the name into slots.userName.',
         selectionRef: 'When the user is choosing from a previously presented list (e.g. "the first one", "the second", "1", "Push Day"), extract the reference verbatim. Do NOT extract this if the user mentions a fresh muscle group instead.',
         intent_continuity: 'When the user replies with only a selection ("the second one", "Push Day", "1") and the previous assistant turn presented a list of workouts, preserve a workout-action intent. If context.prior_intent is one of update_workout/delete_workout/get_workout, keep that. If context.prior_intent is list_workouts and context.has_pending_workout_list is true, classify the new intent as get_workout. Do NOT classify pure selections as create_workout.',
         cpf_continuity: 'When context.prior_intent is set and the user reply contains only a CPF (digits, optionally with dots/dashes), preserve context.prior_intent and extract the CPF into slots.cpf. Do NOT classify a CPF-only message as unknown.',

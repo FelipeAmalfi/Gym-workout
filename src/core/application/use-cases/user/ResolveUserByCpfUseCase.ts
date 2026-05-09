@@ -7,9 +7,9 @@ export class ResolveUserByCpfUseCase {
     private readonly userRepository: UserRepository;
     constructor(userRepository: UserRepository) { this.userRepository = userRepository; }
 
-    async execute(rawCpf: string): Promise<User> {
+    async execute(rawCpf: string, name: string): Promise<User> {
         const cpf = Cpf.tryParse(rawCpf);
         if (!cpf) throw new ValidationError('invalid_cpf');
-        return this.userRepository.getOrCreateByCpf(cpf);
+        return this.userRepository.getOrCreateByCpf(cpf, name);
     }
 }
