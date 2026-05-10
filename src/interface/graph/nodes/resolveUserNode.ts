@@ -78,7 +78,12 @@ export function createResolveUserNode(
 
         try {
             const user = await resolveUserByCpf.execute(slots.cpf!, slots.userName!);
-            const profile = await loadUserProfile.execute(user.id);
+            let profile = null;
+            try {
+                profile = await loadUserProfile.execute(user.id);
+            } catch (profileError) {
+                console.error('loadUserProfile failed, continuing without profile:', profileError);
+            }
             const next: UserContext = {
                 userId: user.id,
                 userName: user.name,

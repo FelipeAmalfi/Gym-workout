@@ -1,6 +1,6 @@
 import { AIMessage } from 'langchain';
 import type { ClassifyIntentUseCase } from '../../../core/application/use-cases/chat/ClassifyIntentUseCase.ts';
-import { getConversation, getUserContext, getWorkflow, type GraphState } from '../state.ts';
+import { getConversation, getUserContext, getWorkflow, type GraphState, type Slots } from '../state.ts';
 import { computeRequiredMissingSlots } from '../helpers.ts';
 
 function getLastAssistantMessage(messages: GraphState['messages']): string | undefined {
@@ -11,6 +11,22 @@ function getLastAssistantMessage(messages: GraphState['messages']): string | und
         }
     }
     return undefined;
+}
+
+function isMeaningful(value: unknown): boolean {
+    if (value == null) return false;
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0;
+    return true;
+}
+
+function mergeSlots(prev: Slots, incoming: Partial<Slots>): Slots {
+    const merged: Record<string, unknown> = { ...prev };
+    for (const [key, value] of Object.entries(incoming)) {
+        if (isMeaningful(value)) merged[key] = value;
+    }
+    return merged as Slots;
 }
 
 export function createIdentifyIntentNode(classifyIntent: ClassifyIntentUseCase) {
@@ -51,7 +67,7 @@ export function createIdentifyIntentNode(classifyIntent: ClassifyIntentUseCase) 
                 intent = 'get_workout';
             }
 
-            const mergedSlots = { ...workflow.slots, ...newSlots };
+            const mergedSlots = mergeSlots(workflow.slots, newSlots);
             const missingSlots = computeRequiredMissingSlots(intent, mergedSlots, workflow.workoutCandidates);
 
             return {
