@@ -1,6 +1,7 @@
 import type { ResolveUserByCpfUseCase } from '../../../core/application/use-cases/user/ResolveUserByCpfUseCase.ts';
 import type { LoadUserProfileUseCase } from '../../../core/application/use-cases/user/LoadUserProfileUseCase.ts';
 import { ValidationError } from '../../../core/domain/errors/AppError.ts';
+import { Cpf } from '../../../core/domain/value-objects/Cpf.ts';
 import { getUserContext, getWorkflow, type GraphState, type UserContext } from '../state.ts';
 import { withMissingSlot, withoutMissingSlots } from '../helpers.ts';
 
@@ -52,6 +53,17 @@ export function createResolveUserNode(
             } catch {
                 // fall through to full CPF resolution
             }
+        }
+
+        if (slots.cpf && !Cpf.isValid(slots.cpf)) {
+            return {
+                workflow: {
+                    ...workflow,
+                    slots: { ...slots, cpf: undefined },
+                    missingSlots: withMissingSlot(workflow.missingSlots, 'cpf'),
+                },
+                turn: { actionError: 'invalid_cpf' },
+            };
         }
 
         const missingCpf = !slots.cpf;
