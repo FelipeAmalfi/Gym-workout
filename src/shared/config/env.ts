@@ -20,7 +20,13 @@ const EnvSchema = z.object({
     ),
     HOST: z.string().default('0.0.0.0'),
 
-    LLM_MODEL: z.string().default('openrouter/owl-alpha'),
+    LLM_MODELS: z.preprocess(
+        (v) => {
+            const s = v === undefined || v === '' ? 'openrouter/owl-alpha' : String(v);
+            return s.split(',').map((m) => m.trim()).filter(Boolean);
+        },
+        z.array(z.string().min(1)).min(1),
+    ),
     LLM_TEMPERATURE: z.preprocess(
         (v) => (v === undefined || v === '' ? undefined : Number(v)),
         z.number().min(0).max(2).default(0),

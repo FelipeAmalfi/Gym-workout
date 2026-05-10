@@ -10,7 +10,7 @@ export class OpenRouterLlmAdapter implements LlmPort {
     constructor(config: ModelConfig) {
         this.llmClient = new ChatOpenAI({
             apiKey: config.apiKey,
-            modelName: config.model,
+            modelName: config.models[0],
             temperature: config.temperature,
             configuration: {
                 baseURL: 'https://openrouter.ai/api/v1',
@@ -20,7 +20,8 @@ export class OpenRouterLlmAdapter implements LlmPort {
                 },
             },
             modelKwargs: {
-                models: [config.model],
+                models: config.models,
+                route: 'throughput',
             },
         });
     }
