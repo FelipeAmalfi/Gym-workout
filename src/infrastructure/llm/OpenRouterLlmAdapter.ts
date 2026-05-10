@@ -21,7 +21,7 @@ export class OpenRouterLlmAdapter implements LlmPort {
             },
             modelKwargs: {
                 models: config.models,
-                route: 'throughput',
+                provider: { sort: 'throughput' },
             },
         });
     }
