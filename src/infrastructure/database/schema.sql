@@ -61,3 +61,15 @@ CREATE TRIGGER workouts_updated_at
 INSERT INTO users (name, email, cpf)
 VALUES ('Demo User', 'demo@gymworkout.ai', '11144477735')
 ON CONFLICT (email) DO UPDATE SET cpf = EXCLUDED.cpf;
+
+CREATE TABLE IF NOT EXISTS user_profile (
+  user_id               INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  preferred_muscles     TEXT[],
+  preferred_difficulty  VARCHAR(50),
+  preferred_equipment   TEXT[],
+  default_num_exercises INTEGER,
+  goals_mentioned       JSONB,
+  last_summary          TEXT,
+  last_summary_at       TIMESTAMPTZ,
+  updated_at            TIMESTAMPTZ DEFAULT NOW()
+);

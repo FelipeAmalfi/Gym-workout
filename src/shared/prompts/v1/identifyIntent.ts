@@ -1,4 +1,7 @@
 import { z } from 'zod/v3';
+import type { UserPreferences } from '../../../core/domain/entities/UserProfile.ts';
+
+const DifficultyEnum = z.enum(['Beginner', 'Intermediate', 'Expert']);
 
 export const SlotsSchema = z.object({
     workoutId: z.number().optional().describe('Workout ID to act on (for update/delete/get)'),
@@ -6,7 +9,8 @@ export const SlotsSchema = z.object({
     goal: z.string().optional().describe('Fitness goal, e.g. muscle_gain, fat_loss, endurance, strength'),
     muscleGroups: z.array(z.string()).optional().describe('Target muscle groups, e.g. Chest, Biceps, Quadriceps'),
     equipment: z.array(z.string()).optional().describe('Available equipment, e.g. Barbell, Dumbbell, Body Only'),
-    difficulty: z.enum(['Beginner', 'Intermediate', 'Expert']).optional().describe('Workout difficulty level'),
+    difficulty: DifficultyEnum.optional().describe('Global difficulty level when the user asks for one across the whole workout'),
+    difficultyByMuscle: z.record(DifficultyEnum).optional().describe('Per-muscle difficulty overrides, e.g. { Chest: "Expert", Shoulders: "Beginner" }'),
     numExercises: z.number().optional().describe('Number of exercises to include in the workout'),
     userId: z.number().optional().describe('User ID if explicitly mentioned in the message'),
     cpf: z.string().optional().describe('Brazilian CPF when user provides one. Always return only the 11 digits, no dots or dashes.'),
@@ -38,7 +42,7 @@ export const getSystemPrompt = () => JSON.stringify({
             description: 'User wants to generate, create, or build a new workout plan',
             keywords: ['create', 'generate', 'make', 'build', 'new workout', 'I want a workout', 'give me a workout', 'suggest a workout'],
             required_slots: ['muscleGroups or goal (at least one)'],
-            optional_slots: ['difficulty', 'equipment', 'numExercises', 'workoutName'],
+            optional_slots: ['difficulty', 'difficultyByMuscle', 'equipment', 'numExercises', 'workoutName'],
         },
         update_workout: {
             description: 'User wants to modify or change an existing workout',
@@ -80,7 +84,8 @@ export const getSystemPrompt = () => JSON.stringify({
     extraction_rules: {
         muscleGroups: 'Match mentioned muscles to valid_muscle_groups list using fuzzy matching. "abs" → "Abdominals", "legs" → ["Quadriceps", "Hamstrings"]',
         equipment: 'Match mentioned equipment to valid_equipment. "weights" → "Dumbbell" or "Barbell", "no equipment" → "Body Only"',
-        difficulty: 'Match level mentions: "easy/beginner" → "Beginner", "medium/moderate" → "Intermediate", "hard/advanced/expert" → "Expert"',
+        difficulty: 'Use slots.difficulty for a single global level: "easy/beginner" → "Beginner", "medium/moderate" → "Intermediate", "hard/advanced/expert" → "Expert". Set this only when the user asks for a single difficulty across the whole workout.',
+        difficultyByMuscle: 'Use slots.difficultyByMuscle when the user assigns DIFFERENT difficulty levels to specific muscles. Example: "expert chest and beginner shoulders" → { Chest: "Expert", Shoulders: "Beginner" }. Keys must come from valid_muscle_groups. When difficultyByMuscle is set, leave slots.difficulty unset. When the user gives one difficulty for everything, set slots.difficulty and leave difficultyByMuscle unset.',
         workoutId: 'Extract numeric IDs explicitly mentioned as "workout #3", "workout ID 5", "the one with ID 2"',
         userId: 'Extract numeric user IDs only if explicitly stated. Do not infer.',
         cpf: 'Extract Brazilian CPF when the user provides one. Strip any dots, dashes, and spaces; return only the 11 digits in slots.cpf. Accept formats like "123.456.789-09", "12345678909", or "meu cpf é 123 456 789 09".',
@@ -89,6 +94,8 @@ export const getSystemPrompt = () => JSON.stringify({
         selectionRef: 'When the user is choosing from a previously presented list (e.g. "the first one", "the second", "1", "Push Day"), extract the reference verbatim. Do NOT extract this if the user mentions a fresh muscle group instead.',
         intent_continuity: 'When the user replies with only a selection ("the second one", "Push Day", "1") and the previous assistant turn presented a list of workouts, preserve a workout-action intent. If context.prior_intent is one of update_workout/delete_workout/get_workout, keep that. If context.prior_intent is list_workouts and context.has_pending_workout_list is true, classify the new intent as get_workout. Do NOT classify pure selections as create_workout.',
         cpf_continuity: 'When context.prior_intent is set and the user reply contains only a CPF (digits, optionally with dots/dashes), preserve context.prior_intent and extract the CPF into slots.cpf. Do NOT classify a CPF-only message as unknown.',
+        identified_user: 'When context.user_is_identified is true, the user has already authenticated. Do NOT extract slots.cpf or slots.userName from random text. Do NOT route follow-ups through identification flows again.',
+        memory_use: 'Read context.summary and context.user_preferences before deciding. Never re-extract slots that are already known in user_preferences unless the user explicitly changes them. Never ask for goals or muscle groups already pinned in user_preferences.goalsMentioned.',
     },
     examples: [
         {
@@ -96,6 +103,17 @@ export const getSystemPrompt = () => JSON.stringify({
             output: {
                 intent: 'create_workout',
                 slots: { muscleGroups: ['Chest', 'Triceps'], difficulty: 'Beginner', equipment: ['Dumbbell'] },
+            },
+        },
+        {
+            input: 'expert chest and beginner shoulders, 4 exercises',
+            output: {
+                intent: 'create_workout',
+                slots: {
+                    muscleGroups: ['Chest', 'Shoulders'],
+                    difficultyByMuscle: { Chest: 'Expert', Shoulders: 'Beginner' },
+                    numExercises: 4,
+                },
             },
         },
         {
@@ -150,23 +168,34 @@ export const getSystemPrompt = () => JSON.stringify({
     ],
 });
 
-export const getUserPromptTemplate = (data: {
+export interface UserPromptInput {
     message: string;
     priorIntent?: string;
     priorAssistantMessage?: string;
     hasPendingWorkoutList?: boolean;
-}) => JSON.stringify({
+    userIsIdentified?: boolean;
+    userName?: string;
+    summary?: string;
+    userPreferences?: UserPreferences;
+}
+
+export const getUserPromptTemplate = (data: UserPromptInput) => JSON.stringify({
     user_message: data.message,
     context: {
         prior_intent: data.priorIntent ?? null,
         prior_assistant_message: data.priorAssistantMessage ?? null,
         has_pending_workout_list: data.hasPendingWorkoutList ?? false,
+        user_is_identified: data.userIsIdentified ?? false,
+        user_name: data.userName ?? null,
+        summary: data.summary ?? null,
+        user_preferences: data.userPreferences ?? null,
     },
     instructions: [
         'Carefully analyze the user message to determine intent',
-        'Use the context block to apply the intent_continuity and cpf_continuity rules',
+        'Use the context block to apply the intent_continuity, cpf_continuity, identified_user, and memory_use rules',
         'Extract all slot values present in the message',
         'Match muscle groups and equipment to the valid lists using fuzzy matching',
+        'When the user assigns different difficulty levels per muscle, set slots.difficultyByMuscle (and leave slots.difficulty unset)',
         'Only extract workoutId if a numeric ID is clearly referenced',
         'For CPF: return only the 11 digits in slots.cpf, stripping any dots, dashes, or spaces',
         'Return slots only for values actually present — do not invent or assume missing values',

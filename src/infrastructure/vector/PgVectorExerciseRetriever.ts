@@ -11,6 +11,9 @@ import type { ModelConfig } from '../../shared/config/modelConfig.ts';
 
 const SCORE_THRESHOLD = 0.3;
 
+type FilterValue = string | number | boolean | { in: (string | number | boolean)[] };
+type MetadataFilter = Record<string, FilterValue>;
+
 export class PgVectorExerciseRetriever implements ExerciseRetriever {
     private readonly vectorStore: PGVectorStore;
 
@@ -48,17 +51,56 @@ export class PgVectorExerciseRetriever implements ExerciseRetriever {
     }
 
     async search(query: ExerciseSearchQuery): Promise<RetrievedExercise[]> {
-        const queryText = query.muscleGroups?.length
-            ? `exercises targeting ${query.muscleGroups.join(' and ')} muscles`
+        const muscles = query.muscleGroups?.filter(Boolean) ?? [];
+
+        // Single-muscle / no-muscle: original behavior, unchanged contract.
+        if (muscles.length <= 1) {
+            return this.searchOne({
+                muscle: muscles[0],
+                equipment: query.equipment,
+                difficulty: query.difficulty,
+                limit: query.limit ?? 5,
+            });
+        }
+
+        // Multi-muscle: fan out one search per muscle, dedupe, balance.
+        const total = query.limit ?? 5;
+        const perMuscle = Math.max(1, Math.ceil(total / muscles.length));
+
+        const results = await Promise.all(
+            muscles.map((muscle) =>
+                this.searchOne({
+                    muscle,
+                    equipment: query.equipment,
+                    difficulty: query.difficulty,
+                    limit: perMuscle + 2, // small overshoot for dedupe headroom
+                }),
+            ),
+        );
+
+        return this.balancedMerge(muscles, results, total);
+    }
+
+    private async searchOne(args: {
+        muscle?: string;
+        equipment?: string[];
+        difficulty?: string;
+        limit: number;
+    }): Promise<RetrievedExercise[]> {
+        const queryText = args.muscle
+            ? `exercises targeting ${args.muscle} muscles`
             : 'general fitness exercises';
 
-        const filter: Record<string, string> = {};
-        if (query.difficulty) filter['level'] = query.difficulty;
-        if (query.equipment?.length === 1 && query.equipment[0]) filter['equipment'] = query.equipment[0];
+        const filter: MetadataFilter = {};
+        if (args.difficulty) filter['level'] = args.difficulty;
+        if (args.muscle) filter['body_part'] = args.muscle;
+        const equipment = args.equipment?.filter(Boolean) ?? [];
+        if (equipment.length === 1) filter['equipment'] = equipment[0]!;
+        else if (equipment.length > 1) filter['equipment'] = { in: equipment };
 
         const results = await this.vectorStore.similaritySearchWithScore(
             queryText,
-            query.limit ?? 5,
+            args.limit,
             Object.keys(filter).length ? filter : undefined,
         );
 
@@ -73,5 +115,36 @@ export class PgVectorExerciseRetriever implements ExerciseRetriever {
                 level: doc.metadata['level'] as string,
                 score,
             }));
+    }
+
+    private balancedMerge(
+        muscles: string[],
+        perMuscleResults: RetrievedExercise[][],
+        total: number,
+    ): RetrievedExercise[] {
+        const seen = new Set<number>();
+        const merged: RetrievedExercise[] = [];
+        const cursors = muscles.map(() => 0);
+
+        // Round-robin: take one exercise per muscle until we have `total` or all queues drained.
+        while (merged.length < total) {
+            let progressed = false;
+            for (let i = 0; i < muscles.length && merged.length < total; i++) {
+                const queue = perMuscleResults[i] ?? [];
+                while (cursors[i]! < queue.length) {
+                    const candidate = queue[cursors[i]!]!;
+                    cursors[i] = cursors[i]! + 1;
+                    if (!seen.has(candidate.exerciseId)) {
+                        seen.add(candidate.exerciseId);
+                        merged.push(candidate);
+                        progressed = true;
+                        break;
+                    }
+                }
+            }
+            if (!progressed) break;
+        }
+
+        return merged;
     }
 }

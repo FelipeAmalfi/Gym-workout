@@ -1,59 +1,114 @@
 import type { ResolveUserByCpfUseCase } from '../../../core/application/use-cases/user/ResolveUserByCpfUseCase.ts';
+import type { LoadUserProfileUseCase } from '../../../core/application/use-cases/user/LoadUserProfileUseCase.ts';
 import { ValidationError } from '../../../core/domain/errors/AppError.ts';
-import type { GraphState } from '../state.ts';
+import { getUserContext, getWorkflow, type GraphState, type UserContext } from '../state.ts';
+import { withMissingSlot, withoutMissingSlots } from '../helpers.ts';
 
-function withMissingSlot(existing: string[] | undefined, slot: string): string[] {
-    const set = new Set(existing ?? []);
-    set.add(slot);
-    return Array.from(set);
-}
-
-function withoutMissingSlot(existing: string[] | undefined, slot: string): string[] {
-    return (existing ?? []).filter((s) => s !== slot);
-}
-
-function withoutMissingSlots(existing: string[] | undefined, slots: string[]): string[] {
-    return (existing ?? []).filter((s) => !slots.includes(s));
-}
-
-export function createResolveUserNode(resolveUserByCpf: ResolveUserByCpfUseCase) {
+export function createResolveUserNode(
+    resolveUserByCpf: ResolveUserByCpfUseCase,
+    loadUserProfile: LoadUserProfileUseCase,
+) {
     return async (state: GraphState): Promise<Partial<GraphState>> => {
-        const slots = state.slots ?? {};
+        const workflow = getWorkflow(state);
+        const userContext = getUserContext(state);
 
+        if (userContext.isIdentified && userContext.userId != null) {
+            const cleared = withoutMissingSlots(workflow.missingSlots, ['cpf', 'name']);
+            if (cleared.length === workflow.missingSlots.length) return {};
+            return { workflow: { ...workflow, missingSlots: cleared } };
+        }
+
+        const slots = workflow.slots;
+
+        // Fast path: a userId came in via the request body or earlier extraction.
         if (slots.userId != null) {
-            return { missingSlots: withoutMissingSlots(state.missingSlots, ['cpf', 'name']) };
+            try {
+                const profile = await loadUserProfile.execute(slots.userId);
+                const next: UserContext = {
+                    userId: slots.userId,
+                    userName: slots.userName ?? userContext.userName,
+                    cpf: slots.cpf ?? userContext.cpf,
+                    isIdentified: true,
+                    profileLoadedAt: Date.now(),
+                    preferences: profile
+                        ? {
+                              preferredMuscles: profile.preferredMuscles,
+                              preferredDifficulty: profile.preferredDifficulty,
+                              preferredEquipment: profile.preferredEquipment,
+                              defaultNumExercises: profile.defaultNumExercises,
+                              goalsMentioned: profile.goalsMentioned,
+                              lastSummary: profile.lastSummary,
+                          }
+                        : undefined,
+                };
+                return {
+                    userContext: next,
+                    workflow: {
+                        ...workflow,
+                        slots: { ...slots, userId: slots.userId },
+                        missingSlots: withoutMissingSlots(workflow.missingSlots, ['cpf', 'name']),
+                    },
+                };
+            } catch {
+                // fall through to full CPF resolution
+            }
         }
 
         const missingCpf = !slots.cpf;
         const missingName = !slots.userName;
 
         if (missingCpf || missingName) {
-            let updated = state.missingSlots;
-            if (missingCpf) updated = withMissingSlot(updated, 'cpf');
-            else updated = withoutMissingSlot(updated, 'cpf');
-            if (missingName) updated = withMissingSlot(updated, 'name');
-            else updated = withoutMissingSlot(updated, 'name');
-            return { missingSlots: updated };
+            let updated = workflow.missingSlots;
+            updated = missingCpf ? withMissingSlot(updated, 'cpf') : withoutMissingSlots(updated, ['cpf']);
+            updated = missingName ? withMissingSlot(updated, 'name') : withoutMissingSlots(updated, ['name']);
+            return { workflow: { ...workflow, missingSlots: updated } };
         }
 
         try {
             const user = await resolveUserByCpf.execute(slots.cpf!, slots.userName!);
+            const profile = await loadUserProfile.execute(user.id);
+            const next: UserContext = {
+                userId: user.id,
+                userName: user.name,
+                cpf: user.cpf,
+                isIdentified: true,
+                profileLoadedAt: Date.now(),
+                preferences: profile
+                    ? {
+                          preferredMuscles: profile.preferredMuscles,
+                          preferredDifficulty: profile.preferredDifficulty,
+                          preferredEquipment: profile.preferredEquipment,
+                          defaultNumExercises: profile.defaultNumExercises,
+                          goalsMentioned: profile.goalsMentioned,
+                          lastSummary: profile.lastSummary,
+                      }
+                    : undefined,
+            };
             return {
-                slots: { ...slots, userId: user.id, cpf: user.cpf },
-                missingSlots: withoutMissingSlots(state.missingSlots, ['cpf', 'name']),
-                actionError: undefined,
+                userContext: next,
+                workflow: {
+                    ...workflow,
+                    slots: { ...slots, userId: user.id, cpf: user.cpf },
+                    missingSlots: withoutMissingSlots(workflow.missingSlots, ['cpf', 'name']),
+                },
+                turn: {},
             };
         } catch (error) {
             if (error instanceof ValidationError) {
                 return {
-                    slots: { ...slots, cpf: undefined },
-                    missingSlots: withMissingSlot(state.missingSlots, 'cpf'),
-                    actionError: 'invalid_cpf',
+                    workflow: {
+                        ...workflow,
+                        slots: { ...slots, cpf: undefined },
+                        missingSlots: withMissingSlot(workflow.missingSlots, 'cpf'),
+                    },
+                    turn: { actionError: 'invalid_cpf' },
                 };
             }
             return {
-                actionError: error instanceof Error ? error.message : 'User resolution failed',
-                missingSlots: withMissingSlot(state.missingSlots, 'cpf'),
+                workflow: { ...workflow, missingSlots: withMissingSlot(workflow.missingSlots, 'cpf') },
+                turn: {
+                    actionError: error instanceof Error ? error.message : 'User resolution failed',
+                },
             };
         }
     };

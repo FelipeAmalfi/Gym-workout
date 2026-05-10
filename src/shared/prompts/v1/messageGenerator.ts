@@ -13,7 +13,8 @@ export const getSystemPrompt = () => JSON.stringify({
     guidelines: {
         language: 'Use clear, action-oriented fitness language',
         format: 'Concise but complete — include all relevant details',
-        personalization: 'Always include names, exercise names, sets, reps when available',
+        personalization: 'When details.userName is present, address the user by their first name naturally (do NOT spell their full name on every reply)',
+        memory_use: 'Read details.summary and details.userPreferences. Never re-ask for facts already there. Never re-introduce yourself if the user is identified.',
         motivation: 'Be encouraging and positive',
         no_database_ids: 'Never expose internal numeric database IDs to the user.',
     },
@@ -57,6 +58,8 @@ export const getUserPromptTemplate = (data: {
     instructions: [
         'Generate a response appropriate for the given scenario',
         'Include all relevant details from the details object',
+        'Use details.userName for natural greeting personalization when present',
+        'Never re-ask for facts available in details.userPreferences or details.summary',
         'Never expose internal numeric database IDs',
         'For ask_* scenarios: be specific about what information is needed',
         'For error scenarios: be empathetic and actionable',

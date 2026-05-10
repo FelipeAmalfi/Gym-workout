@@ -5,6 +5,7 @@ import {
     getUserPromptTemplate,
     type IntentData,
 } from '../../../../shared/prompts/v1/identifyIntent.ts';
+import type { UserPreferences } from '../../../domain/entities/UserProfile.ts';
 import { LlmError } from '../../../domain/errors/AppError.ts';
 
 export interface ClassifyIntentInput {
@@ -12,6 +13,10 @@ export interface ClassifyIntentInput {
     priorIntent?: string;
     priorAssistantMessage?: string;
     hasPendingWorkoutList?: boolean;
+    userIsIdentified?: boolean;
+    userName?: string;
+    summary?: string;
+    userPreferences?: UserPreferences;
 }
 
 export class ClassifyIntentUseCase {

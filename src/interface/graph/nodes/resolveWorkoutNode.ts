@@ -1,18 +1,19 @@
 import type { ResolveWorkoutReferenceUseCase } from '../../../core/application/use-cases/workout/ResolveWorkoutReferenceUseCase.ts';
-import type { GraphState } from '../state.ts';
+import { getUserContext, getWorkflow, type GraphState } from '../state.ts';
 
 export function createResolveWorkoutNode(resolveWorkoutReference: ResolveWorkoutReferenceUseCase) {
     return async (state: GraphState): Promise<Partial<GraphState>> => {
-        const slots = state.slots ?? {};
-        const userId = slots.userId;
+        const workflow = getWorkflow(state);
+        const slots = workflow.slots;
+        const userId = getUserContext(state).userId ?? slots.userId;
 
         if (userId == null) {
-            return { missingSlots: ['cpf'] };
+            return { workflow: { ...workflow, missingSlots: ['cpf'] } };
         }
 
-        const intent = state.intent;
+        const intent = workflow.intent;
         if (intent !== 'update_workout' && intent !== 'delete_workout' && intent !== 'get_workout') {
-            return { missingSlots: ['workout_reference'] };
+            return { workflow: { ...workflow, missingSlots: ['workout_reference'] } };
         }
 
         try {
@@ -21,7 +22,7 @@ export function createResolveWorkoutNode(resolveWorkoutReference: ResolveWorkout
                 workoutId: slots.workoutId,
                 muscleGroups: slots.muscleGroups,
                 selectionRef: slots.selectionRef,
-                candidates: state.workoutCandidates?.map((c) => ({
+                candidates: workflow.workoutCandidates?.map((c) => ({
                     id: c.id,
                     name: c.name,
                     goal: c.goal ?? null,
@@ -34,48 +35,60 @@ export function createResolveWorkoutNode(resolveWorkoutReference: ResolveWorkout
             switch (result.kind) {
                 case 'resolved':
                     return {
-                        slots: { ...slots, workoutId: result.workoutId, selectionRef: undefined },
-                        workoutCandidates: undefined,
-                        missingSlots: [],
+                        workflow: {
+                            ...workflow,
+                            slots: { ...slots, workoutId: result.workoutId, selectionRef: undefined },
+                            workoutCandidates: undefined,
+                            missingSlots: [],
+                        },
                     };
 
                 case 'multiple':
                     return {
-                        workoutCandidates: result.candidates,
-                        missingSlots: ['workout_selection'],
+                        workflow: {
+                            ...workflow,
+                            workoutCandidates: result.candidates,
+                            missingSlots: ['workout_selection'],
+                        },
                     };
 
                 case 'matches_for_get':
                     return {
-                        actionSuccess: true,
-                        actionData: {
-                            matches: result.matches,
-                            filterMuscleGroups: result.filterMuscleGroups,
+                        workflow: { ...workflow, workoutCandidates: undefined },
+                        turn: {
+                            actionSuccess: true,
+                            actionData: {
+                                matches: result.matches,
+                                filterMuscleGroups: result.filterMuscleGroups,
+                            },
                         },
-                        workoutCandidates: undefined,
                     };
 
                 case 'no_match':
                     return {
-                        actionSuccess: false,
-                        actionError: 'no_match',
-                        workoutCandidates: undefined,
+                        workflow: { ...workflow, workoutCandidates: undefined },
+                        turn: { actionSuccess: false, actionError: 'no_match' },
                     };
 
                 case 'invalid_selection':
                     return {
-                        slots: { ...slots, selectionRef: undefined },
-                        missingSlots: ['workout_selection'],
+                        workflow: {
+                            ...workflow,
+                            slots: { ...slots, selectionRef: undefined },
+                            missingSlots: ['workout_selection'],
+                        },
                     };
 
                 case 'needs_reference':
                 default:
-                    return { missingSlots: ['workout_reference'] };
+                    return { workflow: { ...workflow, missingSlots: ['workout_reference'] } };
             }
         } catch (error) {
             return {
-                actionSuccess: false,
-                actionError: error instanceof Error ? error.message : 'Workout lookup failed',
+                turn: {
+                    actionSuccess: false,
+                    actionError: error instanceof Error ? error.message : 'Workout lookup failed',
+                },
             };
         }
     };

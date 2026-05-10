@@ -1,50 +1,55 @@
 import type { ListWorkoutsUseCase } from '../../../core/application/use-cases/workout/ListWorkoutsUseCase.ts';
-import type { GraphState } from '../state.ts';
+import { getUserContext, getWorkflow, type GraphState } from '../state.ts';
 
 export function createListWorkoutsNode(listWorkouts: ListWorkoutsUseCase) {
     return async (state: GraphState): Promise<Partial<GraphState>> => {
-        const slots = state.slots ?? {};
-        const userId = slots.userId;
+        const workflow = getWorkflow(state);
+        const userId = getUserContext(state).userId ?? workflow.slots.userId;
 
         if (userId == null) {
-            return { actionSuccess: false, actionError: 'missing_user' };
+            return { turn: { actionSuccess: false, actionError: 'missing_user' } };
         }
 
         try {
             const result = await listWorkouts.execute({
                 userId,
-                muscleGroups: slots.muscleGroups,
+                muscleGroups: workflow.slots.muscleGroups,
             });
 
             switch (result.kind) {
                 case 'empty':
                     return {
-                        actionSuccess: false,
-                        actionError: 'no_match',
-                        workoutCandidates: undefined,
+                        workflow: { ...workflow, workoutCandidates: undefined },
+                        turn: { actionSuccess: false, actionError: 'no_match' },
                     };
 
                 case 'single':
                     return {
-                        actionSuccess: true,
-                        actionData: { single: result.workout, filterMuscleGroups: result.filterMuscleGroups },
-                        workoutCandidates: undefined,
+                        workflow: { ...workflow, workoutCandidates: undefined },
+                        turn: {
+                            actionSuccess: true,
+                            actionData: { single: result.workout, filterMuscleGroups: result.filterMuscleGroups },
+                        },
                     };
 
                 case 'multiple':
                     return {
-                        actionSuccess: true,
-                        actionData: {
-                            multiple: result.candidates,
-                            filterMuscleGroups: result.filterMuscleGroups,
+                        workflow: { ...workflow, workoutCandidates: result.candidates },
+                        turn: {
+                            actionSuccess: true,
+                            actionData: {
+                                multiple: result.candidates,
+                                filterMuscleGroups: result.filterMuscleGroups,
+                            },
                         },
-                        workoutCandidates: result.candidates,
                     };
             }
         } catch (error) {
             return {
-                actionSuccess: false,
-                actionError: error instanceof Error ? error.message : 'Listing workouts failed',
+                turn: {
+                    actionSuccess: false,
+                    actionError: error instanceof Error ? error.message : 'Listing workouts failed',
+                },
             };
         }
     };
