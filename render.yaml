@@ -13,7 +13,7 @@ services:
       - key: LANGSMITH_API_KEY
         sync: false
       - key: HTTP_REFERER
-        value: https://gym-workout-api.onrender.com
+        value: https://gym-workout-jbr5.onrender.com
       - key: X_TITLE
         value: Gym Workout Assistant
       - key: POSTGRES_HOST
