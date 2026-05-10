@@ -4,6 +4,8 @@ services:
     env: docker
     plan: free
     branch: main
+    ignoredPaths:
+      - gym-workout-frontend/**
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
