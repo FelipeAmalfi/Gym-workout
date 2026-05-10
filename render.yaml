@@ -27,4 +27,4 @@ services:
       - key: POSTGRES_PASSWORD
         sync: false
       - key: FRONTEND_URL
-        sync: false
+        value: https://gym-workout-pi.vercel.app
