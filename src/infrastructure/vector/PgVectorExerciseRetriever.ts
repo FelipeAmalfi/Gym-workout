@@ -2,6 +2,7 @@ import type pg from 'pg';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { Document } from '@langchain/core/documents';
+import type { EmbeddingsInterface } from '@langchain/core/embeddings';
 import type {
     ExerciseRetriever,
     ExerciseSearchQuery,
@@ -17,8 +18,8 @@ type MetadataFilter = Record<string, FilterValue>;
 export class PgVectorExerciseRetriever implements ExerciseRetriever {
     private readonly vectorStore: PGVectorStore;
 
-    constructor(pool: pg.Pool, config: ModelConfig) {
-        const embeddings = new OpenAIEmbeddings({
+    constructor(pool: pg.Pool, config: ModelConfig, embeddingsOverride?: EmbeddingsInterface) {
+        const embeddings = embeddingsOverride ?? new OpenAIEmbeddings({
             apiKey: config.apiKey,
             modelName: config.embeddingModel,
             configuration: {

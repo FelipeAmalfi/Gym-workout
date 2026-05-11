@@ -44,17 +44,27 @@ export interface Container {
     graph: ReturnType<typeof buildWorkoutGraph>;
 }
 
-export function buildContainer(envOverride?: Env): Container {
-    const env = envOverride ?? loadEnv();
+export interface ContainerOverrides {
+    env?: Env;
+    pool?: pg.Pool;
+    llm?: LlmPort;
+    exerciseRetriever?: ExerciseRetriever;
+    userRepository?: UserRepository;
+    userProfileRepository?: UserProfileRepository;
+    workoutRepository?: WorkoutRepository;
+}
+
+export function buildContainer(overrides: ContainerOverrides = {}): Container {
+    const env = overrides.env ?? loadEnv();
     const modelConfig = buildModelConfig(env);
 
-    const pool = createPool(env);
+    const pool = overrides.pool ?? createPool(env);
 
-    const userRepository = new PgUserRepository(pool);
-    const userProfileRepository = new PgUserProfileRepository(pool);
-    const workoutRepository = new PgWorkoutRepository(pool);
-    const exerciseRetriever = new PgVectorExerciseRetriever(pool, modelConfig);
-    const llm = new OpenRouterLlmAdapter(modelConfig);
+    const userRepository = overrides.userRepository ?? new PgUserRepository(pool);
+    const userProfileRepository = overrides.userProfileRepository ?? new PgUserProfileRepository(pool);
+    const workoutRepository = overrides.workoutRepository ?? new PgWorkoutRepository(pool);
+    const exerciseRetriever = overrides.exerciseRetriever ?? new PgVectorExerciseRetriever(pool, modelConfig);
+    const llm = overrides.llm ?? new OpenRouterLlmAdapter(modelConfig);
 
     const useCases: GraphDependencies = {
         classifyIntent: new ClassifyIntentUseCase(llm),

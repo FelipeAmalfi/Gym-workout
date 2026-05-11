@@ -1,0 +1,51 @@
+[
+  { "title": "Bench Press", "description": "Barbell flat bench press for chest mass", "bodyPart": "Chest", "equipment": "Barbell", "level": "Intermediate" },
+  { "title": "Incline Dumbbell Press", "description": "Upper chest focus with dumbbells", "bodyPart": "Chest", "equipment": "Dumbbell", "level": "Intermediate" },
+  { "title": "Push-Up", "description": "Bodyweight chest builder for beginners", "bodyPart": "Chest", "equipment": "Body Only", "level": "Beginner" },
+  { "title": "Cable Crossover", "description": "Cable isolation for chest definition", "bodyPart": "Chest", "equipment": "Cable", "level": "Expert" },
+  { "title": "Decline Bench Press", "description": "Lower chest emphasis", "bodyPart": "Chest", "equipment": "Barbell", "level": "Expert" },
+
+  { "title": "Pull-Up", "description": "Bodyweight back and lat builder", "bodyPart": "Lats", "equipment": "Body Only", "level": "Intermediate" },
+  { "title": "Lat Pulldown", "description": "Cable lat exercise for beginners", "bodyPart": "Lats", "equipment": "Cable", "level": "Beginner" },
+  { "title": "Barbell Row", "description": "Compound back strength builder", "bodyPart": "Middle Back", "equipment": "Barbell", "level": "Intermediate" },
+  { "title": "Seated Cable Row", "description": "Mid-back with controlled cable tension", "bodyPart": "Middle Back", "equipment": "Cable", "level": "Beginner" },
+  { "title": "Deadlift", "description": "Compound lower-back and posterior chain", "bodyPart": "Lower Back", "equipment": "Barbell", "level": "Expert" },
+
+  { "title": "Squat", "description": "King of leg exercises", "bodyPart": "Quadriceps", "equipment": "Barbell", "level": "Intermediate" },
+  { "title": "Leg Press", "description": "Machine quad mass builder", "bodyPart": "Quadriceps", "equipment": "Machine", "level": "Beginner" },
+  { "title": "Bulgarian Split Squat", "description": "Unilateral quad and glute work", "bodyPart": "Quadriceps", "equipment": "Dumbbell", "level": "Expert" },
+  { "title": "Walking Lunge", "description": "Dynamic lower-body strength", "bodyPart": "Quadriceps", "equipment": "Dumbbell", "level": "Intermediate" },
+
+  { "title": "Romanian Deadlift", "description": "Hip hinge for hamstring development", "bodyPart": "Hamstrings", "equipment": "Barbell", "level": "Intermediate" },
+  { "title": "Lying Leg Curl", "description": "Hamstring isolation on a machine", "bodyPart": "Hamstrings", "equipment": "Machine", "level": "Beginner" },
+  { "title": "Good Morning", "description": "Posterior chain hamstring exercise", "bodyPart": "Hamstrings", "equipment": "Barbell", "level": "Expert" },
+
+  { "title": "Hip Thrust", "description": "Glute-focused barbell movement", "bodyPart": "Glutes", "equipment": "Barbell", "level": "Intermediate" },
+  { "title": "Glute Bridge", "description": "Bodyweight glute activation", "bodyPart": "Glutes", "equipment": "Body Only", "level": "Beginner" },
+  { "title": "Cable Kickback", "description": "Glute isolation on cable", "bodyPart": "Glutes", "equipment": "Cable", "level": "Expert" },
+
+  { "title": "Overhead Press", "description": "Barbell standing shoulder press", "bodyPart": "Shoulders", "equipment": "Barbell", "level": "Intermediate" },
+  { "title": "Lateral Raise", "description": "Side delt isolation", "bodyPart": "Shoulders", "equipment": "Dumbbell", "level": "Beginner" },
+  { "title": "Arnold Press", "description": "Multi-angle dumbbell shoulder press", "bodyPart": "Shoulders", "equipment": "Dumbbell", "level": "Expert" },
+
+  { "title": "Barbell Curl", "description": "Classic biceps mass builder", "bodyPart": "Biceps", "equipment": "Barbell", "level": "Intermediate" },
+  { "title": "Hammer Curl", "description": "Brachialis-focused dumbbell curl", "bodyPart": "Biceps", "equipment": "Dumbbell", "level": "Beginner" },
+  { "title": "Concentration Curl", "description": "Strict biceps isolation", "bodyPart": "Biceps", "equipment": "Dumbbell", "level": "Expert" },
+
+  { "title": "Triceps Pushdown", "description": "Cable triceps isolation", "bodyPart": "Triceps", "equipment": "Cable", "level": "Beginner" },
+  { "title": "Close-Grip Bench Press", "description": "Compound triceps and chest", "bodyPart": "Triceps", "equipment": "Barbell", "level": "Intermediate" },
+  { "title": "Skull Crusher", "description": "Lying triceps extension", "bodyPart": "Triceps", "equipment": "E-Z Curl Bar", "level": "Expert" },
+
+  { "title": "Crunch", "description": "Beginner abdominal exercise", "bodyPart": "Abdominals", "equipment": "Body Only", "level": "Beginner" },
+  { "title": "Hanging Leg Raise", "description": "Advanced lower-abs builder", "bodyPart": "Abdominals", "equipment": "Body Only", "level": "Expert" },
+  { "title": "Cable Crunch", "description": "Weighted abs on cable", "bodyPart": "Abdominals", "equipment": "Cable", "level": "Intermediate" },
+
+  { "title": "Standing Calf Raise", "description": "Calf mass builder", "bodyPart": "Calves", "equipment": "Machine", "level": "Intermediate" },
+  { "title": "Seated Calf Raise", "description": "Soleus-focused calf work", "bodyPart": "Calves", "equipment": "Machine", "level": "Beginner" },
+
+  { "title": "Shrugs", "description": "Trapezius mass builder", "bodyPart": "Traps", "equipment": "Dumbbell", "level": "Intermediate" },
+  { "title": "Face Pull", "description": "Rear delts and upper traps", "bodyPart": "Traps", "equipment": "Cable", "level": "Beginner" },
+
+  { "title": "Wrist Curl", "description": "Forearm flexor isolation", "bodyPart": "Forearms", "equipment": "Dumbbell", "level": "Beginner" },
+  { "title": "Reverse Wrist Curl", "description": "Forearm extensor isolation", "bodyPart": "Forearms", "equipment": "Dumbbell", "level": "Beginner" }
+]
