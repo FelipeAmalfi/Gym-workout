@@ -16,7 +16,7 @@ describe('CPF identity flow', () => {
     it('asks for CPF on first unidentified turn and resolves after CPF+name provided', async () => {
         const llm = new MockLlmAdapter()
             .onIntent(/create.*chest/i, { intent: 'create_workout', slots: { muscleGroups: ['Chest'] } })
-            .onIntent(/cpf|11144477735|111\.444/i, {
+            .onIntent(/11144477735|111\.444/i, {
                 intent: 'create_workout',
                 slots: { cpf: VALID_CPF },
             })
