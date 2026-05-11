@@ -132,18 +132,16 @@ export async function truncateAll(pool: pg.Pool): Promise<void> {
           workouts,
           user_profile,
           langchain_pg_embedding,
-          exercises
+          exercises,
+          users
         RESTART IDENTITY CASCADE
     `).catch(async () => {
         // langchain_pg_embedding may not exist yet on first run
         await pool.query(`
-            TRUNCATE TABLE workout_exercises, workouts, user_profile, exercises
+            TRUNCATE TABLE workout_exercises, workouts, user_profile, exercises, users
             RESTART IDENTITY CASCADE
         `);
     });
-    // Reset users but keep the demo seed row.
-    await pool.query(`DELETE FROM users WHERE email <> 'demo@gymworkout.ai'`);
-    await pool.query(`ALTER SEQUENCE users_id_seq RESTART WITH 100`);
 }
 
 export function envForTestPostgres(): Record<string, string> {
