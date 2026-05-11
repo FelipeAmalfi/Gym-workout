@@ -93,9 +93,31 @@ export async function stopPostgres(): Promise<void> {
 }
 
 export function getPostgres(): StartedPostgres {
-    if (!shared) {
+    if (shared) return shared;
+
+    // Forked workers inherit env vars set by globalSetup but not the module-level
+    // `shared` object. Reconstruct a pool-only handle from those env vars.
+    const host = process.env.POSTGRES_HOST;
+    const portStr = process.env.POSTGRES_PORT;
+    const database = process.env.POSTGRES_DB;
+    const user = process.env.POSTGRES_USER;
+    const password = process.env.POSTGRES_PASSWORD;
+
+    if (!host || !portStr || !database || !user || !password) {
         throw new Error('Postgres testcontainer not started — call startPostgres() in globalSetup');
     }
+
+    const port = Number(portStr);
+    shared = {
+        container: null as unknown as StartedTestContainer,
+        pool: new Pool({ host, port, database, user, password, max: 10 }),
+        connectionString: `postgres://${user}:${password}@${host}:${port}/${database}`,
+        host,
+        port,
+        database,
+        user,
+        password,
+    };
     return shared;
 }
 
@@ -110,18 +132,16 @@ export async function truncateAll(pool: pg.Pool): Promise<void> {
           workouts,
           user_profile,
           langchain_pg_embedding,
-          exercises
+          exercises,
+          users
         RESTART IDENTITY CASCADE
     `).catch(async () => {
         // langchain_pg_embedding may not exist yet on first run
         await pool.query(`
-            TRUNCATE TABLE workout_exercises, workouts, user_profile, exercises
+            TRUNCATE TABLE workout_exercises, workouts, user_profile, exercises, users
             RESTART IDENTITY CASCADE
         `);
     });
-    // Reset users but keep the demo seed row.
-    await pool.query(`DELETE FROM users WHERE email <> 'demo@gymworkout.ai'`);
-    await pool.query(`ALTER SEQUENCE users_id_seq RESTART WITH 100`);
 }
 
 export function envForTestPostgres(): Record<string, string> {
