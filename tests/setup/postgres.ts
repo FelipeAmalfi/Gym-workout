@@ -93,9 +93,31 @@ export async function stopPostgres(): Promise<void> {
 }
 
 export function getPostgres(): StartedPostgres {
-    if (!shared) {
+    if (shared) return shared;
+
+    // Forked workers inherit env vars set by globalSetup but not the module-level
+    // `shared` object. Reconstruct a pool-only handle from those env vars.
+    const host = process.env.POSTGRES_HOST;
+    const portStr = process.env.POSTGRES_PORT;
+    const database = process.env.POSTGRES_DB;
+    const user = process.env.POSTGRES_USER;
+    const password = process.env.POSTGRES_PASSWORD;
+
+    if (!host || !portStr || !database || !user || !password) {
         throw new Error('Postgres testcontainer not started — call startPostgres() in globalSetup');
     }
+
+    const port = Number(portStr);
+    shared = {
+        container: null as unknown as StartedTestContainer,
+        pool: new Pool({ host, port, database, user, password, max: 10 }),
+        connectionString: `postgres://${user}:${password}@${host}:${port}/${database}`,
+        host,
+        port,
+        database,
+        user,
+        password,
+    };
     return shared;
 }
 
