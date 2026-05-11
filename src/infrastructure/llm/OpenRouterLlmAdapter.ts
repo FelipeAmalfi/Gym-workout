@@ -33,6 +33,7 @@ export class OpenRouterLlmAdapter implements LlmPort {
     ): Promise<StructuredResult<T>> {
         try {
             const structuredLlm = this.llmClient.withStructuredOutput(schema as z.ZodSchema, { method: 'jsonMode' });
+
             const messages = [
                 new SystemMessage(systemPrompt),
                 new HumanMessage(userPrompt),
