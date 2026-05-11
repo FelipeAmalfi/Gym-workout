@@ -17,12 +17,12 @@ describe('POST /chat', () => {
     beforeAll(async () => {
         llm = new MockLlmAdapter()
             .onIntent(/weather/i, { intent: 'unknown', slots: {} })
-            .onIntent(/create.*workout$/i, { intent: 'create_workout', slots: {} })
+            .onIntent(/create.*workout/i, { intent: 'create_workout', slots: {} })
             .onIntent(/chest.+triceps|chest, triceps/i, {
                 intent: 'create_workout',
                 slots: { muscleGroups: ['Chest', 'Triceps'], difficulty: 'Beginner' },
             })
-            .onIntent(/show.*workouts|all my workouts|list/i, {
+            .onIntent(/show.*workouts|all my workouts|list.*workout/i, {
                 intent: 'list_workouts',
                 slots: {},
             });

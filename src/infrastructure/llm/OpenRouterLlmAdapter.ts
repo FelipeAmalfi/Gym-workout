@@ -1,5 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai';
-import { createAgent, HumanMessage, providerStrategy, SystemMessage } from 'langchain';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { z } from 'zod/v3';
 import type { LlmPort, StructuredResult } from '../../core/application/ports/LlmPort.ts';
 import type { ModelConfig } from '../../shared/config/modelConfig.ts';
@@ -32,19 +32,15 @@ export class OpenRouterLlmAdapter implements LlmPort {
         schema: z.ZodSchema<T>,
     ): Promise<StructuredResult<T>> {
         try {
-            const agent = createAgent({
-                model: this.llmClient,
-                tools: [],
-                responseFormat: providerStrategy(schema),
-            });
+            const structuredLlm = this.llmClient.withStructuredOutput(schema as z.ZodSchema);
             const messages = [
                 new SystemMessage(systemPrompt),
                 new HumanMessage(userPrompt),
             ];
-            const data = await agent.invoke({ messages });
+            const data = await structuredLlm.invoke(messages);
             return {
                 success: true,
-                data: data.structuredResponse as T,
+                data: data as T,
             };
         } catch (error) {
             console.error('OpenRouterLlmAdapter error:', error);
