@@ -16,6 +16,7 @@ Pick the agent that matches your task. Read the agent file. It lists which skill
 | [prompt-agent](agents/prompt-agent.md) | Prompt templates, message scenarios, response quality |
 | [refactor-agent](agents/refactor-agent.md) | Code quality, clean architecture, naming conventions |
 | [api-agent](agents/api-agent.md) | New REST endpoints, request/response contracts |
+| [pr-agent](agents/pr-agent.md) | Generate and open Pull Requests targeting `dev` after changes are complete |
 
 ## Skills (loaded by agents — do not load directly)
 
@@ -27,6 +28,7 @@ memory_handling  langchain_memory slot_filling
 prompt_generation  response_formatting
 postgres_repository  migrations
 validation       api_creation     cpf_user_flow
+pr_creation
 ```
 
 ## Loading Rule
