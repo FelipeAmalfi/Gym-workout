@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Read(//c/Users/felip/OneDrive/Documentos/P�s gradua��o/**)"
+      "Read(//c/Users/felip/OneDrive/Documentos/P�s gradua��o/**)",
+      "Bash(gh pr create --base dev --title 'fix: use nullish instead of optional in intent and summary schemas' --body ' *)",
+      "Bash(git push *)",
+      "PowerShell(Get-Command gh -ErrorAction SilentlyContinue)"
     ]
   }
 }
