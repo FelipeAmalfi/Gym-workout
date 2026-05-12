@@ -1,6 +1,6 @@
 {
   "name": "gym-workout-lc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI-powered workout system using LangChain, RAG, and PostgreSQL",
   "type": "module",
   "main": "src/index.ts",
