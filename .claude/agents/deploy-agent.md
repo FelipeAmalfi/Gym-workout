@@ -1,3 +1,8 @@
+---
+name: deploy-agent
+description: Geração automatizada de deploy PR de dev para main. Lê commits desde o último release, determina bump semver, atualiza versão no package.json e abre release PR targeting main.
+---
+
 # Deploy Agent
 
 ## Specialization

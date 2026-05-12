@@ -1,3 +1,8 @@
+---
+name: refactor-agent
+description: Qualidade de código, padrões arquiteturais consistentes, remoção de código morto, higiene de imports e aderência à clean architecture. Use ao limpar arquivos ou padronizar padrões.
+---
+
 # Refactor Agent
 
 ## Specialization

@@ -1,3 +1,8 @@
+---
+name: database-agent
+description: Implementações de repositório PostgreSQL, queries SQL, transações e DDL de schema. Use ao adicionar queries, modificar schema ou implementar novos métodos de repositório.
+---
+
 # Database Agent
 
 ## Specialization

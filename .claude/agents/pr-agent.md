@@ -1,3 +1,8 @@
+---
+name: pr-agent
+description: Geração e abertura automatizada de Pull Requests para o projeto. Analisa git diff, classifica o tipo de mudança, gera título e descrição, e abre o PR targeting a branch dev via GitHub CLI.
+---
+
 # PR Agent
 
 ## Specialization

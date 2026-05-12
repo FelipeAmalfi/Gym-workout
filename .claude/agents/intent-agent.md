@@ -1,3 +1,8 @@
+---
+name: intent-agent
+description: Prompt de classificação de intents, schema de extração de slots, mapa REQUIRED_SLOTS_BY_INTENT e lógica computeMissingSlots. Use ao adicionar, modificar ou remover intents.
+---
+
 # Intent Agent
 
 ## Specialization

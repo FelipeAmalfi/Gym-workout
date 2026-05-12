@@ -1,3 +1,8 @@
+---
+name: architect-agent
+description: Gerencia topologia do StateGraph, registro de nós, roteamento condicional e wiring de DI no container.ts. Use ao adicionar nós, modificar fluxo do grafo ou reestruturar dependências.
+---
+
 # Architect Agent
 
 ## Specialization

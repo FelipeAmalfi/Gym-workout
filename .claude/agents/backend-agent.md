@@ -1,3 +1,8 @@
+---
+name: backend-agent
+description: Registro de rotas Fastify v5, factory functions de controllers, schemas HTTP e comportamento do error handler. Use ao adicionar ou modificar endpoints HTTP.
+---
+
 # Backend Agent
 
 ## Specialization

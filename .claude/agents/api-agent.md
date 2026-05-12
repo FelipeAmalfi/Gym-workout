@@ -1,3 +1,8 @@
+---
+name: api-agent
+description: Cria novos endpoints REST, schemas Zod, registro de controllers e contratos de API. Use ao adicionar novas rotas ou expandir contratos existentes.
+---
+
 # API Agent
 
 ## Specialization

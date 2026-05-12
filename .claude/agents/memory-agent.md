@@ -1,3 +1,8 @@
+---
+name: memory-agent
+description: Schema de estado do LangGraph, checkpointing com MemorySaver, roteamento por thread_id e persistência de slots entre turnos. Use ao alterar o shape do estado ou comportamento de persistência.
+---
+
 # Memory Agent
 
 ## Specialization

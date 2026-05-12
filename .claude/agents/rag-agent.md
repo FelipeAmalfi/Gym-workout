@@ -1,3 +1,8 @@
+---
+name: rag-agent
+description: Busca por similaridade pgvector, embeddings via OpenRouter, pipeline de ingestão de exercícios e configuração de score threshold. Use ao modificar recuperação de exercícios ou lógica de ingestão.
+---
+
 # RAG Agent
 
 ## Specialization

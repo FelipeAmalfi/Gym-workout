@@ -1,3 +1,8 @@
+---
+name: prompt-agent
+description: Templates de prompt de sistema e usuário, cenários de geração de mensagem, engenharia de prompt do classificador de intents e tom das respostas. Use ao modificar prompts LLM ou adicionar cenários de mensagem.
+---
+
 # Prompt Agent
 
 ## Specialization
