@@ -4,18 +4,18 @@ import type { UserPreferences } from '../../../core/domain/entities/UserProfile.
 const DifficultyEnum = z.enum(['Beginner', 'Intermediate', 'Expert']);
 
 export const SlotsSchema = z.object({
-    workoutId: z.number().optional().describe('Workout ID to act on (for update/delete/get)'),
-    workoutName: z.string().optional().describe('Name for the workout'),
-    goal: z.string().optional().describe('Fitness goal, e.g. muscle_gain, fat_loss, endurance, strength'),
-    muscleGroups: z.array(z.string()).optional().describe('Target muscle groups, e.g. Chest, Biceps, Quadriceps'),
-    equipment: z.array(z.string()).optional().describe('Available equipment, e.g. Barbell, Dumbbell, Body Only'),
-    difficulty: DifficultyEnum.optional().describe('Global difficulty level when the user asks for one across the whole workout'),
-    difficultyByMuscle: z.record(DifficultyEnum).optional().describe('Per-muscle difficulty overrides, e.g. { Chest: "Expert", Shoulders: "Beginner" }'),
-    numExercises: z.number().optional().describe('Number of exercises to include in the workout'),
-    userId: z.number().optional().describe('User ID if explicitly mentioned in the message'),
-    cpf: z.string().optional().describe('Brazilian CPF when user provides one. Always return only the 11 digits, no dots or dashes.'),
-    userName: z.string().optional().describe('Full name of the user when they provide it'),
-    selectionRef: z.string().optional().describe('Reference to a previously listed workout: an ordinal ("first"/"second"), a position number ("1"), or a workout name'),
+    workoutId: z.number().nullish().describe('Workout ID to act on (for update/delete/get)'),
+    workoutName: z.string().nullish().describe('Name for the workout'),
+    goal: z.string().nullish().describe('Fitness goal, e.g. muscle_gain, fat_loss, endurance, strength'),
+    muscleGroups: z.array(z.string()).nullish().describe('Target muscle groups, e.g. Chest, Biceps, Quadriceps'),
+    equipment: z.array(z.string()).nullish().describe('Available equipment, e.g. Barbell, Dumbbell, Body Only'),
+    difficulty: DifficultyEnum.nullish().describe('Global difficulty level when the user asks for one across the whole workout'),
+    difficultyByMuscle: z.record(DifficultyEnum).nullish().describe('Per-muscle difficulty overrides, e.g. { Chest: "Expert", Shoulders: "Beginner" }'),
+    numExercises: z.number().nullish().describe('Number of exercises to include in the workout'),
+    userId: z.number().nullish().describe('User ID if explicitly mentioned in the message'),
+    cpf: z.string().nullish().describe('Brazilian CPF when user provides one. Always return only the 11 digits, no dots or dashes.'),
+    userName: z.string().nullish().describe('Full name of the user when they provide it'),
+    selectionRef: z.string().nullish().describe('Reference to a previously listed workout: an ordinal ("first"/"second"), a position number ("1"), or a workout name'),
 });
 
 export const IntentSchema = z.object({
@@ -27,7 +27,7 @@ export const IntentSchema = z.object({
         'list_workouts',
         'unknown',
     ]).describe('The identified user intent'),
-    slots: SlotsSchema.optional().describe('All slot values extractable from the user message'),
+    slots: SlotsSchema.nullish().describe('All slot values extractable from the user message'),
 });
 
 export type IntentData = z.infer<typeof IntentSchema>;
