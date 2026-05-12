@@ -4,7 +4,7 @@ export const SummarySchema = z.object({
     user_facts: z.array(z.string()).describe('Stable facts about the user (goals, constraints, identity).'),
     decisions: z.array(z.string()).describe('Decisions or preferences locked in during the conversation.'),
     unresolved_questions: z.array(z.string()).describe('Open questions or pending follow-ups.'),
-    notes: z.string().optional().describe('Any extra short note worth carrying forward.'),
+    notes: z.string().nullish().describe('Any extra short note worth carrying forward.'),
 });
 
 export type SummaryData = z.infer<typeof SummarySchema>;
