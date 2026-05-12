@@ -3,6 +3,7 @@ dist/
 .env
 postgres_data/
 *.js.map
+.claude/settings.local.json
 
 # LangGraph API
 .langgraph_api
